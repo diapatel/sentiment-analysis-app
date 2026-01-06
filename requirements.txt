@@ -1,0 +1,7 @@
+flask
+google-api-python-client
+nltk
+scikit-learn
+numpy
+pandas
+joblib
