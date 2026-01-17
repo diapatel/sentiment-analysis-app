@@ -1,21 +1,21 @@
-import nltk
-nltk.download('stopwords')
-nltk.download('wordnet')
-
 from flask import Flask, render_template, request
 from utils.youtube import extract_video_id, get_comments
 from utils.preprocess import preprocess_comment
-import nltk
-from utils.youtube import extract_video_id, get_comments
 import joblib
-
-
-# Load ML model and TF-IDF vectorizer
-rf_model = joblib.load("model/model.pkl")
-tfidf_vectorizer = joblib.load("model/tfidf_vectorizer.pkl")
-
+import os
 
 app = Flask(__name__)
+
+# Lazy-loaded ML models
+rf_model = None
+tfidf_vectorizer = None
+
+def load_models():
+    """Load models only when needed"""
+    global rf_model, tfidf_vectorizer
+    if rf_model is None or tfidf_vectorizer is None:
+        rf_model = joblib.load("model/model.pkl")
+        tfidf_vectorizer = joblib.load("model/tfidf_vectorizer.pkl")
 
 @app.route("/")
 def home():
@@ -23,6 +23,8 @@ def home():
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
+    load_models()  # Load models safely here
+
     youtube_url = request.form.get("youtube_url")
 
     if not youtube_url:
@@ -67,24 +69,18 @@ def analyze():
     total = len(mapped_predictions)
     sentiment_percentages = {k: round(v / total * 100, 2) for k, v in sentiment_counts.items()}
 
-    # TEMP: Just show sentiment percentages for now
-    # return f"Sentiment percentages:<br>" \
-    #        f"Positive: {sentiment_percentages['positive']}%<br>" \
-    #        f"Neutral: {sentiment_percentages['neutral']}%<br>" \
-    #        f"Negative: {sentiment_percentages['negative']}%"
-
-    # Pass 10 sample comments to results page
+    # Pass sample comments to results page
     sample_comments = cleaned_comments[:100]
 
     return render_template("results.html", 
                            sentiment=sentiment_percentages,
                            comments=sample_comments)
 
-
-    # # Pass to template
-    # return render_template("results.html", comments=cleaned_comments[:100],
-    #                        sentiment=sentiment_percentages)
-
-
+# ✅ Render-ready app runner
+# if __name__ == "__main__":
+#     port = int(os.environ.get("PORT", 10000))
+#     app.run(host="0.0.0.0", port=port)
 if __name__ == "__main__":
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get("PORT", 10000))  # Render sets $PORT automatically
+    app.run(host="127.0.0.1", port=port)

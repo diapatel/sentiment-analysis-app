@@ -3,7 +3,7 @@ from googleapiclient.discovery import build
 import re
 
 # Get your API key from environment variable
-API_KEY = os.getenv("YOUTUBE_API_KEY")
+API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
 def extract_video_id(url):
     """
